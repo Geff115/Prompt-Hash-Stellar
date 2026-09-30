@@ -1,44 +1,31 @@
-import { motion } from "framer-motion";
-import type { ReactNode } from "react";
-import { pageVariants } from "./variants";
-
-interface PageTransitionProps {
-  children: ReactNode;
-  /**
-   * Pass the current route pathname as the key so Framer Motion knows
-   * when to trigger exit → enter animations.
-   * This is set automatically by App.tsx.
-   */
-  routeKey: string;
-}
+import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
- * PageTransition
- *
- * Wraps the content of every page with an enter/exit animation.
- * Mount this *inside* AnimatePresence (handled in App.tsx) so exit
- * animations actually play before the next page mounts.
- *
- * Usage (App.tsx handles this automatically):
- *
- *   <AnimatePresence mode="wait">
- *     <PageTransition routeKey={location.pathname}>
- *       <YourPage />
- *     </PageTransition>
- *   </AnimatePresence>
+ * Wraps page-level content with a fade-in/fade-out transition keyed on the
+ * current route pathname.  When the user prefers reduced motion the transition
+ * is skipped entirely (#336).
  */
-export default function PageTransition({ children, routeKey }: PageTransitionProps) {
+export function PageTransition({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const reducedMotion = useReducedMotion();
+
+  if (reducedMotion) {
+    return <>{children}</>;
+  }
+
   return (
-    <motion.div
-      key={routeKey}
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      // Full-height so the page doesn't collapse during the exit animation
-      style={{ minHeight: "100%" }}
-    >
-      {children}
-    </motion.div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.2, ease: "easeInOut" }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }
